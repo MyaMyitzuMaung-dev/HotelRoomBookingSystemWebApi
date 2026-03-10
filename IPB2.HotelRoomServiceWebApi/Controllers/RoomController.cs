@@ -1,4 +1,5 @@
 ﻿using IPB2.HotelRoomService.Database.AppDbContextModels;
+using IPB2.HotelRoomServiceWebApi.Enums;
 using IPB2.HotelRoomServiceWebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,12 +19,24 @@ namespace IPB2.HotelRoomServiceWebAPI.Controllers
 
         // GET: api/room
         [HttpGet]
-        public async Task<IActionResult> GetRooms()
+        public async Task<IActionResult> GetRooms(
+        [FromQuery] int pageNumber = 1,  // default page 1
+        [FromQuery] int pageSize = 10)   // default 10 items per page
         {
-            var rooms = await _context.Rooms
-                                      .Where(r => !r.IsDeleted)
-                                      .ToListAsync();
-            return Ok(rooms);
+            var query = _context.Rooms.Where(r => !r.IsDeleted);
+
+            var rooms = await query
+                .OrderBy(r => r.RoomId)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Data = rooms
+            });
         }
 
         // GET: api/room/5
@@ -48,7 +61,6 @@ namespace IPB2.HotelRoomServiceWebAPI.Controllers
                 RoomType = dto.RoomType,
                 PricePerNight = dto.PricePerNight,
                 Capacity = dto.Capacity,
-                Status = dto.Status ?? "Available",
                 CreatedAt = DateTime.Now,
                 IsDeleted = false
             };

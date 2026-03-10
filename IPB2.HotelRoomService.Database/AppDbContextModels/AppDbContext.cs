@@ -66,7 +66,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PricePerNight).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.RoomNumber).HasMaxLength(20);
             entity.Property(e => e.RoomType).HasMaxLength(50);
-            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Available");
         });
 
         OnModelCreatingPartial(modelBuilder);

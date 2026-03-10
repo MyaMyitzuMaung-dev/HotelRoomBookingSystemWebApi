@@ -1,4 +1,6 @@
-﻿namespace IPB2.HotelRoomServiceWebApi.Models;
+﻿using IPB2.HotelRoomServiceWebApi.Enums;
+
+namespace IPB2.HotelRoomServiceWebApi.Models;
 
 public class RoomCreateRequestDto
 {
@@ -6,7 +8,7 @@ public class RoomCreateRequestDto
     public string? RoomType { get; set; }
     public decimal? PricePerNight { get; set; }
     public int? Capacity { get; set; }
-    public string? Status { get; set; }
+    public RoomStatus Status { get; set; } = RoomStatus.Available;
 }
 public class RoomCreateResponseDto
 {
