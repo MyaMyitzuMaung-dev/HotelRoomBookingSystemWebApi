@@ -154,5 +154,36 @@ namespace IPB2.HotelRoomServiceWebAPI.Controllers
                 Message = "Room soft-deleted successfully"
             });
         }
+
+        // GET: api/room/search
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchRooms(
+            [FromQuery] string? roomType,          // filter by room type
+            [FromQuery] int pageNumber = 1,        
+            [FromQuery] int pageSize = 10)        
+        {
+            var query = _context.Rooms.Where(r => !r.IsDeleted);
+
+            if (!string.IsNullOrEmpty(roomType))
+            {
+                query = query.Where(r => r.RoomType != null && r.RoomType.Contains(roomType));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var rooms = await query
+                .OrderBy(r => r.RoomNumber)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                Data = rooms
+            });
+        }
     }
 }

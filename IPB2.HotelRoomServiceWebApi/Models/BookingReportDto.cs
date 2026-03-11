@@ -16,4 +16,12 @@
 
         public decimal? TotalAmount { get; set; }
     }
+    public class DailyOccupancyReportDto
+    {
+        public DateTime Date { get; set; }           // Report date
+        public int TotalRooms { get; set; }          // Total rooms
+        public int OccupiedRooms { get; set; }       // Number of occupied rooms
+        public int AvailableRooms { get; set; }      // Number of available rooms
+        public int MaintenanceRooms { get; set; }    // Number of rooms under maintenance
+    }
 }

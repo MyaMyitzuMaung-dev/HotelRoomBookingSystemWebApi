@@ -1,4 +1,5 @@
 ﻿using IPB2.HotelRoomService.Database.AppDbContextModels;
+using IPB2.HotelRoomServiceWebApi.Enums;
 using IPB2.HotelRoomServiceWebApi.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,41 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
                 pageSize,
                 totalCount,
                 data = report
+            });
+        }
+        // GET: api/report/daily-occupancy?date=2026-03-11
+        [HttpGet("daily-occupancy")]
+        public async Task<IActionResult> GetDailyOccupancy([FromQuery] DateTime date)
+        {
+            // Convert DateTime to DateOnly
+            var reportDate = DateOnly.FromDateTime(date);
+
+            // Get bookings for that date
+            var bookingsOnDate = await _context.Bookings
+                .Include(b => b.Room)
+                .Where(b => !b.IsDeleted
+                            && b.Status == BookingStatus.CheckedIn.ToString()
+                            && b.CheckInDate <= reportDate
+                            && b.CheckOutDate >= reportDate)
+                .ToListAsync();
+
+            // Build result
+            var result = bookingsOnDate.Select(b => new
+            {
+                b.BookingId,
+                RoomNumber = b.Room!.RoomNumber,
+                RoomType = b.Room!.RoomType,
+                GuestId = b.GuestId,
+                CheckInDate = b.CheckInDate,
+                CheckOutDate = b.CheckOutDate,
+                Status = b.Status
+            });
+
+            return Ok(new
+            {
+                Date = reportDate,
+                TotalOccupiedRooms = bookingsOnDate.Count,
+                Bookings = result
             });
         }
     }
