@@ -1,4 +1,5 @@
 ﻿using IPB2.HotelRoomService.Database.AppDbContextModels;
+using IPB2.HotelRoomServiceWebApi.Enums;
 using IPB2.HotelRoomServiceWebApi.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,29 +17,24 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
         {
             _context = context;
         }
-        // 1️⃣ Book Room
-        [HttpPost("book")]
-        public async Task<IActionResult> BookRoom([FromBody] BookingCreateRequestDto dto)
+        // Book Room
+        [HttpPost]
+        public async Task<IActionResult> BookRoom(BookingCreateRequestDto dto)
         {
             var room = await _context.Rooms
                 .FirstOrDefaultAsync(r => r.RoomId == dto.RoomId && !r.IsDeleted);
 
             if (room == null)
-                return NotFound(new BookingCreateResponseDto
-                {
-                    IsSuccess = false,
-                    Message = "Room not found"
-                });
+                return NotFound("Room not found");
 
-            var guest = await _context.Guests
-                .FirstOrDefaultAsync(g => g.GuestId == dto.GuestId && !g.IsDeleted);
+            // calculate nights
+            var nights = dto.CheckOutDate.DayNumber - dto.CheckInDate.DayNumber;
 
-            if (guest == null)
-                return NotFound(new BookingCreateResponseDto
-                {
-                    IsSuccess = false,
-                    Message = "Guest not found"
-                });
+            if (nights <= 0)
+                return BadRequest("Invalid check-in and check-out date");
+
+            // calculate total amount
+            decimal totalAmount = (room.PricePerNight ?? 0) * nights;
 
             var booking = new Booking
             {
@@ -47,7 +43,8 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
                 BookingDate = DateTime.Now,
                 CheckInDate = dto.CheckInDate,
                 CheckOutDate = dto.CheckOutDate,
-                Status = "Booked",
+                TotalAmount = totalAmount,
+                Status = BookingStatus.Booked.ToString(),
                 IsDeleted = false
             };
 
@@ -56,68 +53,102 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
 
             return Ok(new BookingCreateResponseDto
             {
-                IsSuccess = true,
-                Message = "Room booked successfully",
-                BookingId = booking.BookingId
+                BookingId = booking.BookingId,
+                Message = $"Room booked successfully. Total Amount = {totalAmount}"
             });
         }
 
-        // 2️⃣ Check-in
-        [HttpPost("checkin/{bookingId}")]
-        public async Task<IActionResult> CheckIn(int bookingId)
+        // Booking List
+        [HttpGet]
+        public async Task<IActionResult> GetBookings(int pageNo = 1, int pageSize = 10)
         {
-            var booking = await _context.Bookings
-                .Include(b => b.Room)
-                .FirstOrDefaultAsync(b => b.BookingId == bookingId && !b.IsDeleted);
-
-            if (booking == null)
-                return NotFound(new BookingResponseDto
+            var bookings = await _context.Bookings
+                .Where(x => !x.IsDeleted)
+                .Skip((pageNo - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new BookingResponseDto
                 {
-                    IsSuccess = false,
-                    Message = "Booking not found"
-                });
+                    BookingId = x.BookingId,
+                    RoomId = x.RoomId,
+                    GuestId = x.GuestId,
+                    CheckInDate = x.CheckInDate,
+                    CheckOutDate = x.CheckOutDate,
+                    Status = Enum.Parse<BookingStatus>(x.Status!),
+                    TotalAmount = x.TotalAmount
+                })
+                .ToListAsync();
 
-            booking.Status = "CheckedIn";
-
-            if (booking.Room != null)
-                booking.Room.Status = "Occupied";
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new BookingResponseDto
-            {
-                IsSuccess = true,
-                Message = "Check-in successful"
-            });
+            return Ok(bookings);
         }
 
-        // 3️⃣ Check-out
-        [HttpPost("checkout/{bookingId}")]
-        public async Task<IActionResult> CheckOut(int bookingId)
+        // Check-in
+        [HttpPut("checkin/{id}")]
+        public async Task<IActionResult> CheckIn(int id)
         {
             var booking = await _context.Bookings
-                .Include(b => b.Room)
-                .FirstOrDefaultAsync(b => b.BookingId == bookingId && !b.IsDeleted);
+                .FirstOrDefaultAsync(x => x.BookingId == id && !x.IsDeleted);
 
             if (booking == null)
-                return NotFound(new BookingResponseDto
-                {
-                    IsSuccess = false,
-                    Message = "Booking not found"
-                });
+                return NotFound("Booking not found");
 
-            booking.Status = "CheckedOut";
-
-            if (booking.Room != null)
-                booking.Room.Status = "Available";
+            booking.Status = BookingStatus.CheckedIn.ToString();
 
             await _context.SaveChangesAsync();
 
-            return Ok(new BookingResponseDto
-            {
-                IsSuccess = true,
-                Message = "Check-out successful"
-            });
+            return Ok("Check-in successful");
+        }
+
+        // Check-out
+        [HttpPut("checkout/{id}")]
+        public async Task<IActionResult> CheckOut(int id)
+        {
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(x => x.BookingId == id && !x.IsDeleted);
+
+            if (booking == null)
+                return NotFound("Booking not found");
+
+            booking.Status = BookingStatus.CheckedOut.ToString();
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Check-out successful");
+        }
+
+        // Soft Delete
+        [HttpPatch("{id}")]
+        public async Task<IActionResult> DeleteBooking(int id)
+        {
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(x => x.BookingId == id);
+
+            if (booking == null)
+                return NotFound();
+
+            booking.IsDeleted = true;
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Booking deleted");
+        }
+
+        [HttpPut("cancel/{id}")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(x => x.BookingId == id && !x.IsDeleted);
+
+            if (booking == null)
+                return NotFound("Booking not found");
+
+            if (booking.Status == BookingStatus.CheckedIn.ToString())
+                return BadRequest("Cannot cancel after check-in");
+
+            booking.Status = BookingStatus.Cancelled.ToString();
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Booking cancelled successfully");
         }
     }
 }
