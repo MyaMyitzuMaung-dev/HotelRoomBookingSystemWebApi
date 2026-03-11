@@ -1,6 +1,6 @@
-﻿using IPB2.HotelRoomServiceWebApi.Enums;
+﻿using IPB2.HotelRoomService.Shared.Enums;
 
-namespace IPB2.HotelRoomServiceWebApi.Models;
+namespace IPB2.HotelRoomService.Shared.Models;
 
 public class RoomCreateRequestDto
 {

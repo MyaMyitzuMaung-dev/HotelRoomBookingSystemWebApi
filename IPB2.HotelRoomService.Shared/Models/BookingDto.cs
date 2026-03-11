@@ -1,8 +1,12 @@
-﻿using IPB2.HotelRoomServiceWebApi.Enums;
+﻿using IPB2.HotelRoomService.Shared.Enums;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace IPB2.HotelRoomServiceWebApi.Models
+namespace IPB2.HotelRoomService.Shared.Models
 {
-    // Book Room
     public class BookingCreateRequestDto
     {
         public int RoomId { get; set; }

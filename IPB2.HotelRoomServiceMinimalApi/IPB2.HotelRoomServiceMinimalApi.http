@@ -1,0 +1,6 @@
+@IPB2.HotelRoomServiceMinimalApi_HostAddress = http://localhost:5115
+
+GET {{IPB2.HotelRoomServiceMinimalApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,6 +1,6 @@
 ﻿using IPB2.HotelRoomService.Database.AppDbContextModels;
-using IPB2.HotelRoomServiceWebApi.Enums;
-using IPB2.HotelRoomServiceWebApi.Models;
+using IPB2.HotelRoomService.Shared.Enums;
+using IPB2.HotelRoomService.Shared.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

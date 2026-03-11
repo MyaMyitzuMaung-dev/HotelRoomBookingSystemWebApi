@@ -1,4 +1,4 @@
-﻿namespace IPB2.HotelRoomServiceWebApi.Models
+﻿namespace IPB2.HotelRoomService.Shared.Models
 {
     public class GuestCreateRequestDto
     {
