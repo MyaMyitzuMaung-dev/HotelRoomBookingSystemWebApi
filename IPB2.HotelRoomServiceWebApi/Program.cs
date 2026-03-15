@@ -10,6 +10,12 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Register Services
+builder.Services.AddScoped<IPB2.HotelRoomServiceWebApi.Features.Guest.GuestService>();
+builder.Services.AddScoped<IPB2.HotelRoomServiceWebApi.Features.Booking.BookingService>();
+builder.Services.AddScoped<IPB2.HotelRoomServiceWebApi.Features.Room.RoomService>();
+builder.Services.AddScoped<IPB2.HotelRoomServiceWebApi.Features.Report.ReportService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

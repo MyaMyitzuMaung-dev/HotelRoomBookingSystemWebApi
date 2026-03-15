@@ -1,25 +1,20 @@
-﻿using IPB2.HotelRoomService.Database.AppDbContextModels;
+using IPB2.HotelRoomService.Database.AppDbContextModels;
 using IPB2.HotelRoomService.Shared.Enums;
 using IPB2.HotelRoomService.Shared.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPB2.HotelRoomServiceWebApi.Controllers
+namespace IPB2.HotelRoomServiceWebApi.Features.Report
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class ReportController : ControllerBase
+    public class ReportService
     {
         private readonly AppDbContext _context;
 
-        public ReportController(AppDbContext context)
+        public ReportService(AppDbContext context)
         {
             _context = context;
         }
-        // Booking Report
-        [HttpGet("booking-report")]
-        public async Task<IActionResult> GetBookingReport(int pageNo = 1, int pageSize = 10)
+
+        public async Task<GetBookingReportResponse> GetBookingReportAsync(GetBookingReportRequest request)
         {
             var totalCount = await _context.Bookings
                 .Where(x => !x.IsDeleted)
@@ -29,8 +24,8 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
                 .Where(x => !x.IsDeleted)
                 .Include(x => x.Room)
                 .Include(x => x.Guest)
-                .Skip((pageNo - 1) * pageSize)
-                .Take(pageSize)
+                .Skip((request.PageNo - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .Select(x => new BookingReportDto
                 {
                     BookingId = x.BookingId,
@@ -43,22 +38,19 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(new
+            return new GetBookingReportResponse
             {
-                pageNo,
-                pageSize,
-                totalCount,
-                data = report
-            });
+                PageNo = request.PageNo,
+                PageSize = request.PageSize,
+                TotalCount = totalCount,
+                Data = report
+            };
         }
-        // GET: api/report/daily-occupancy?date=2026-03-11
-        [HttpGet("daily-occupancy")]
-        public async Task<IActionResult> GetDailyOccupancy([FromQuery] DateTime date)
-        {
-            // Convert DateTime to DateOnly
-            var reportDate = DateOnly.FromDateTime(date);
 
-            // Get bookings for that date
+        public async Task<GetDailyOccupancyResponse> GetDailyOccupancyAsync(GetDailyOccupancyRequest request)
+        {
+            var reportDate = DateOnly.FromDateTime(request.Date);
+
             var bookingsOnDate = await _context.Bookings
                 .Include(b => b.Room)
                 .Where(b => !b.IsDeleted
@@ -67,24 +59,23 @@ namespace IPB2.HotelRoomServiceWebApi.Controllers
                             && b.CheckOutDate >= reportDate)
                 .ToListAsync();
 
-            // Build result
-            var result = bookingsOnDate.Select(b => new
+            var result = bookingsOnDate.Select(b => new DailyOccupancyItem
             {
-                b.BookingId,
+                BookingId = b.BookingId,
                 RoomNumber = b.Room!.RoomNumber,
                 RoomType = b.Room!.RoomType,
                 GuestId = b.GuestId,
-                CheckInDate = b.CheckInDate,
-                CheckOutDate = b.CheckOutDate,
+                CheckInDate = (DateOnly)b.CheckInDate!,
+                CheckOutDate = (DateOnly)b.CheckOutDate!,
                 Status = b.Status
-            });
+            }).ToList();
 
-            return Ok(new
+            return new GetDailyOccupancyResponse
             {
                 Date = reportDate,
                 TotalOccupiedRooms = bookingsOnDate.Count,
                 Bookings = result
-            });
+            };
         }
     }
 }
