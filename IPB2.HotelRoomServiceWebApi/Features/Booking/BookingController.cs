@@ -56,7 +56,7 @@ namespace IPB2.HotelRoomServiceWebApi.Features.Booking
             return Ok(response.Message);
         }
 
-        // Soft Delete
+        // SoftDelete
         [HttpPatch("{id}")]
         public async Task<IActionResult> DeleteBooking(int id)
         {
